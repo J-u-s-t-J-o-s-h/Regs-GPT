@@ -1,9 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { auth } from '@/lib/firebase';
+import { adminAuth } from '@/lib/firebase-admin';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2025-01-27.acacia',
 });
 
 export default async function handler(
@@ -22,18 +22,23 @@ export default async function handler(
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const decodedToken = await auth.verifyIdToken(token);
+    const decodedToken = await adminAuth.verifyIdToken(token);
     const { email, uid } = decodedToken;
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'subscription',
-      customer_email: email,
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
-      metadata: { uid },
-    });
+    // Get base URL from request headers if NEXT_PUBLIC_APP_URL is not set
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+      `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode: 'subscription',
+        customer_email: email,
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: `${new URL('/dashboard', baseUrl).href}?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${new URL('/pricing', baseUrl).href}`,
+        metadata: { uid },
+      });
+      
 
     return res.status(200).json({ sessionId: session.id });
   } catch (error) {
