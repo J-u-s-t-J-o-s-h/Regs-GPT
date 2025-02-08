@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
 
 ## Getting Started
@@ -38,3 +39,42 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+=======
+# RegsGPT
+
+RegsGPT is an AI-powered web application that helps U.S. Army personnel quickly search, understand, and reference Army regulations.
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Copy `.env.local.example` to `.env.local` and fill in your environment variables
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Features
+
+- AI-powered regulation search
+- Firebase Authentication
+- Stripe subscription management
+- Real-time chat history
+- Bookmark important regulations
+
+## Tech Stack
+
+- Next.js
+- TypeScript
+- Tailwind CSS
+- Firebase
+- OpenAI API
+- Stripe
+
+## License
+
+MIT 
+>>>>>>> 1bd1e39 (Initial commit: Full project setup including Auth, AI, Stripe, and UI refactor)

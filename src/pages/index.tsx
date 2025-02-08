@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
 
@@ -112,3 +113,38 @@ export default function Home() {
     </div>
   );
 }
+=======
+import Head from 'next/head'
+import LoginButton from '@/components/auth/LoginButton'
+import { useAuth } from '@/contexts/AuthContext'
+
+export default function Home() {
+  const { user } = useAuth();
+  
+  return (
+    <>
+      <Head>
+        <title>RegsGPT - Army Regulations Search</title>
+        <meta name="description" content="AI-powered Army regulations search and reference tool" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      <main className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="flex justify-end mb-8">
+            <LoginButton />
+          </div>
+          <h1 className="text-4xl font-bold text-center pt-20">
+            Welcome to RegsGPT
+          </h1>
+          {user && (
+            <p className="text-center mt-4">
+              Signed in as {user.email}
+            </p>
+          )}
+        </div>
+      </main>
+    </>
+  )
+} 
+>>>>>>> 1bd1e39 (Initial commit: Full project setup including Auth, AI, Stripe, and UI refactor)
