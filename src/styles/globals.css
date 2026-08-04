@@ -2,22 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global Styles */
+:root {
+  --background: #1f2d16;
+  --foreground: #e5e7eb;
+}
+
 body {
-  @apply bg-[#1F2D16] text-[#E5E7EB]; /* Olive Green Background & Light Gray Text */
-}
-
-/* Ensure default text is visible */
-p, h1, h2, h3, h4, h5, h6, span, div {
-  @apply text-gray-300;
-}
-
-/* Make links stand out */
-a {
-  @apply text-blue-400 hover:text-blue-500;
-}
-
-/* Button styling */
-button {
-  @apply px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700;
+  background-color: var(--background);
+  color: var(--foreground);
 }
