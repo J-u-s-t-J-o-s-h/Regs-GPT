@@ -1,59 +1,43 @@
 # RegsGPT Deployment Checklist
 
 ## Environment Variables
-- [ ] NEXT_PUBLIC_FIREBASE_API_KEY
-- [ ] NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-- [ ] NEXT_PUBLIC_FIREBASE_PROJECT_ID
-- [ ] NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-- [ ] STRIPE_SECRET_KEY
-- [ ] NEXT_PUBLIC_APP_URL
-- [ ] OPENAI_API_KEY
+- [ ] `NEXT_PUBLIC_APP_URL`
+- [ ] `NEXT_PUBLIC_FIREBASE_API_KEY`
+- [ ] `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- [ ] `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- [ ] `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+- [ ] `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- [ ] `NEXT_PUBLIC_FIREBASE_APP_ID`
+- [ ] `FIREBASE_SERVICE_ACCOUNT_JSON` (or `FIREBASE_SERVICE_ACCOUNT_PATH` locally)
+- [ ] `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- [ ] `NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID`
+- [ ] `STRIPE_SECRET_KEY`
+- [ ] `STRIPE_WEBHOOK_SECRET`
+- [ ] `OPENAI_API_KEY`
+- [ ] `OPENAI_ASSISTANT_ID` (Assistant with File Search + regulation PDFs)
 
 ## Pre-Deployment Tests
 1. Authentication
-   - [ ] Sign up flow works
-   - [ ] Login flow works
-   - [ ] Password reset works
-
+   - [ ] Google sign-in works
+   - [ ] Logout works
 2. Subscription
-   - [ ] Stripe checkout works
-   - [ ] Premium features are properly gated
-   - [ ] Subscription status updates correctly
+   - [ ] Stripe checkout redirects correctly
+   - [ ] `/dashboard` syncs subscription after payment
+   - [ ] Webhook updates Firestore on renew/cancel
+   - [ ] Chat is gated without an active subscription
+3. Chat
+   - [ ] Authenticated premium users can send messages
+   - [ ] Assistant answers cite regulations from File Search
+4. UI
+   - [ ] Landing, pricing, chat, dashboard work on mobile
 
-3. Chat Functionality
-   - [ ] Messages send successfully
-   - [ ] AI responses are received
-   - [ ] Chat history loads correctly
-
-4. UI/UX
-   - [ ] Responsive on mobile devices
-   - [ ] Loading states work correctly
-   - [ ] Error messages are displayed properly
-
-## Deployment Steps
-1. Run build locally
-   ```bash
-   npm run build
-   ```
-
-2. Test production build
-   ```bash
-   npm run start
-   ```
-
-3. Deploy to Firebase
-   ```bash
-   npm run deploy:prod
-   ```
-
-4. Verify deployment
-   - [ ] Visit production URL
-   - [ ] Test core functionality
-   - [ ] Check console for errors
-   - [ ] Verify analytics tracking
+## Deployment
+1. Prefer **Vercel** for Next.js + API routes
+2. `npm run build` locally
+3. Configure Stripe webhook endpoint: `https://<your-domain>/api/stripe/webhook`
+4. Enable Google provider in Firebase Auth and authorize your domain
 
 ## Post-Deployment
-- [ ] Monitor error reporting
-- [ ] Check subscription webhooks
-- [ ] Verify database connections
-- [ ] Test OpenAI integration 
+- [ ] Monitor Stripe webhook deliveries
+- [ ] Verify Firestore `users/{uid}/subscriptions/status`
+- [ ] Confirm OpenAI Assistant File Search corpus is current

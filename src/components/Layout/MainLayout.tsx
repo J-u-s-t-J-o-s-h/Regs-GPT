@@ -1,16 +1,14 @@
-import Sidebar from './Sidebar';
-import { useRouter } from 'next/router';
+import Sidebar from "./Sidebar";
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const showSidebar = router.pathname !== '/login' && router.pathname !== '/signup';
-
+export default function MainLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="min-h-screen bg-[#1F2D16]">
-      {showSidebar && <Sidebar />}
-      <main className={`${showSidebar ? 'ml-64' : ''} p-4`}>
-        {children}
-      </main>
+      <Sidebar />
+      <main className="ml-64 p-4 min-h-screen">{children}</main>
     </div>
   );
-} 
+}

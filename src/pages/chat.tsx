@@ -1,17 +1,24 @@
-import { withAuth } from '@/components/auth/withAuth';
-import { withSubscription } from '@/components/auth/withSubscription';
-import ChatInterface from '@/components/Chat/ChatInterface';
+import Head from "next/head";
+import { withAuth } from "@/components/auth/withAuth";
+import { withSubscription } from "@/components/auth/withSubscription";
+import ChatInterface from "@/components/Chat/ChatInterface";
 
 function ChatPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Army Regulations Assistant</h1>
-        <ChatInterface />
-      </main>
-    </div>
+    <>
+      <Head>
+        <title>Chat — RegsGPT</title>
+      </Head>
+      <div className="min-h-[calc(100vh-2rem)]">
+        <main className="container mx-auto px-4 py-4">
+          <h1 className="text-2xl font-bold mb-6 text-white">
+            Army Regulations Assistant
+          </h1>
+          <ChatInterface />
+        </main>
+      </div>
+    </>
   );
 }
 
-// Compose the HOCs - first check auth, then check subscription
-export default withAuth(withSubscription(ChatPage)); 
+export default withAuth(withSubscription(ChatPage));
