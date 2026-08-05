@@ -1,7 +1,12 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { useAuth } from './AuthContext';
-import { db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { useAuth } from "./AuthContext";
+import { supabase } from "@/lib/supabase";
 
 interface SubscriptionStatus {
   isActive: boolean;
@@ -14,11 +19,21 @@ interface SubscriptionContextType {
   isLoading: boolean;
 }
 
-const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
+const SubscriptionContext = createContext<SubscriptionContextType | undefined>(
+  undefined
+);
+
+const INACTIVE: SubscriptionStatus = {
+  isActive: false,
+  tier: null,
+  endDate: null,
+};
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -28,28 +43,53 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const unsubscribe = onSnapshot(
-      doc(db, 'users', user.uid, 'subscriptions', 'status'),
-      (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          setSubscription({
-            isActive: data.status === 'active',
-            tier: data.tier,
-            endDate: data.current_period_end?.toDate() || null,
-          });
-        } else {
-          setSubscription({
-            isActive: false,
-            tier: null,
-            endDate: null,
-          });
-        }
-        setIsLoading(false);
-      }
-    );
+    let active = true;
 
-    return () => unsubscribe();
+    const load = async () => {
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("status, tier, current_period_end")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!active) return;
+
+      if (error || !data) {
+        setSubscription(INACTIVE);
+      } else {
+        setSubscription({
+          isActive: data.status === "active",
+          tier: data.tier ?? null,
+          endDate: data.current_period_end
+            ? new Date(data.current_period_end)
+            : null,
+        });
+      }
+
+      setIsLoading(false);
+    };
+
+    load();
+
+    // Reflect webhook-driven changes without a page refresh.
+    const channel = supabase
+      .channel(`subscriptions:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "subscriptions",
+          filter: `user_id=eq.${user.id}`,
+        },
+        load
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   return (
@@ -62,7 +102,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 export const useSubscription = () => {
   const context = useContext(SubscriptionContext);
   if (!context) {
-    throw new Error('useSubscription must be used within a SubscriptionProvider');
+    throw new Error(
+      "useSubscription must be used within a SubscriptionProvider"
+    );
   }
   return context;
-}; 
+};

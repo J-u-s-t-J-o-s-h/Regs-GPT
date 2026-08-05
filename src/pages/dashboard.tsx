@@ -8,7 +8,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 
 function DashboardPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, getAccessToken } = useAuth();
   const { subscription, isLoading } = useSubscription();
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +26,11 @@ function DashboardPage() {
       setSyncing(true);
       setError(null);
       try {
-        const token = await user.getIdToken();
+        const token = await getAccessToken();
+        if (!token) {
+          throw new Error("Your session expired. Please sign in again.");
+        }
+
         const response = await fetch("/api/stripe/sync-session", {
           method: "POST",
           headers: {
@@ -57,7 +61,7 @@ function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [user, router]);
+  }, [user, router, getAccessToken]);
 
   return (
     <>

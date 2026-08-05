@@ -11,11 +11,9 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
-serviceAccount.json
 
-# Firebase
-firebase-debug.log
-.firebase/
+# Regulation PDFs — large binaries, fetched locally (see data/regulations/README.md)
+data/regulations/*.pdf
 
 # OS
 .DS_Store

@@ -1,13 +1,36 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { requireUser } from "@/lib/auth-api";
-import { adminDb } from "@/lib/firebase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
-  createThread,
-  createMessage,
-  runAssistant,
-  getRunStatus,
-  getChatMessages,
-} from "@/lib/openai";
+  generateAnswer,
+  retrieveContext,
+  type ChatMessage,
+} from "@/lib/gemini";
+
+// Gemini has no server-side threads, so the client replays recent turns.
+// Cap them so a large payload cannot blow up the prompt.
+const MAX_HISTORY_MESSAGES = 12;
+
+function sanitizeHistory(value: unknown): ChatMessage[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter(
+      (item): item is ChatMessage =>
+        !!item &&
+        typeof item === "object" &&
+        ((item as ChatMessage).role === "user" ||
+          (item as ChatMessage).role === "assistant") &&
+        Array.isArray((item as ChatMessage).content)
+    )
+    .map((item) => ({
+      role: item.role,
+      content: item.content.filter(
+        (part): part is string => typeof part === "string"
+      ),
+    }))
+    .slice(-MAX_HISTORY_MESSAGES);
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -18,51 +41,50 @@ export default async function handler(
   }
 
   try {
-    const decodedToken = await requireUser(req);
-    const { uid } = decodedToken;
+    const { uid } = await requireUser(req);
 
-    const subscriptionSnap = await adminDb
-      .collection("users")
-      .doc(uid)
-      .collection("subscriptions")
-      .doc("status")
-      .get();
+    const { data: subscription, error: subscriptionError } =
+      await getSupabaseAdmin()
+        .from("subscriptions")
+        .select("status")
+        .eq("user_id", uid)
+        .maybeSingle();
 
-    if (!subscriptionSnap.exists || subscriptionSnap.data()?.status !== "active") {
+    if (subscriptionError) {
+      throw new Error(
+        `Failed to read subscription: ${subscriptionError.message}`
+      );
+    }
+
+    if (subscription?.status !== "active") {
       return res.status(403).json({ error: "Premium subscription required" });
     }
 
-    const { message, threadId } = req.body as {
+    const { message, history } = req.body as {
       message?: string;
-      threadId?: string | null;
+      history?: unknown;
     };
 
     if (!message?.trim()) {
       return res.status(400).json({ error: "Message is required" });
     }
 
-    const currentThreadId = threadId || (await createThread());
-    await createMessage(currentThreadId, message.trim());
-
-    const run = await runAssistant(currentThreadId);
-
-    let runStatus = await getRunStatus(currentThreadId, run.id);
-    while (runStatus.status === "in_progress" || runStatus.status === "queued") {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      runStatus = await getRunStatus(currentThreadId, run.id);
-    }
-
-    if (runStatus.status !== "completed") {
-      return res.status(500).json({
-        error: `Run ended with status: ${runStatus.status}`,
-      });
-    }
-
-    const messages = await getChatMessages(currentThreadId);
+    const question = message.trim();
+    const chunks = await retrieveContext(question);
+    const answer = await generateAnswer(
+      question,
+      sanitizeHistory(history),
+      chunks
+    );
 
     return res.status(200).json({
-      threadId: currentThreadId,
-      messages,
+      reply: { role: "assistant", content: [answer] },
+      citations: chunks.map((chunk) => ({
+        docId: chunk.doc_id,
+        title: chunk.title,
+        page: chunk.page,
+        sourceUrl: chunk.source_url,
+      })),
     });
   } catch (error) {
     const statusCode =

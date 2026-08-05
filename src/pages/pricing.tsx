@@ -5,7 +5,7 @@ import { SUBSCRIPTION_TIERS } from "@/lib/stripe";
 import { useState } from "react";
 
 export default function PricingPage() {
-  const { user } = useAuth();
+  const { user, getAccessToken } = useAuth();
   const { subscription } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,11 @@ export default function PricingPage() {
     setError(null);
 
     try {
-      const token = await user.getIdToken();
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error("Your session expired. Please sign in again.");
+      }
+
       const response = await fetch("/api/stripe/create-checkout", {
         method: "POST",
         headers: {

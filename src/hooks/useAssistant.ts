@@ -6,16 +6,23 @@ export interface Message {
   content: string[];
 }
 
+export interface Citation {
+  docId: string;
+  title: string | null;
+  page: number | null;
+  sourceUrl: string | null;
+}
+
 interface ChatResponse {
-  threadId?: string;
-  messages?: Message[];
+  reply?: Message;
+  citations?: Citation[];
   error?: string;
 }
 
 export function useAssistant() {
-  const { user } = useAuth();
+  const { user, getAccessToken } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [threadId, setThreadId] = useState<string | null>(null);
+  const [citations, setCitations] = useState<Citation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,24 +35,25 @@ export function useAssistant() {
     setIsLoading(true);
     setError(null);
 
-    const optimisticUserMessage: Message = {
-      role: "user",
-      content: [content],
-    };
-    setMessages((prev) => [...prev, optimisticUserMessage]);
+    // Snapshot the turns before this one — the API is stateless, so prior
+    // turns are replayed with each request.
+    const history = messages;
+
+    setMessages((prev) => [...prev, { role: "user", content: [content] }]);
 
     try {
-      const token = await user.getIdToken();
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error("Your session expired. Please sign in again.");
+      }
+
       const response = await fetch("/api/assistant/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          message: content,
-          threadId,
-        }),
+        body: JSON.stringify({ message: content, history }),
       });
 
       const data: ChatResponse = await response.json();
@@ -54,13 +62,11 @@ export function useAssistant() {
         throw new Error(data.error || "Failed to send message");
       }
 
-      if (data.threadId) {
-        setThreadId(data.threadId);
+      if (data.reply) {
+        setMessages((prev) => [...prev, data.reply as Message]);
       }
 
-      if (data.messages) {
-        setMessages(data.messages);
-      }
+      setCitations(data.citations ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
       setMessages((prev) => prev.slice(0, -1));
@@ -71,6 +77,7 @@ export function useAssistant() {
 
   return {
     messages,
+    citations,
     isLoading,
     error,
     sendMessage,
