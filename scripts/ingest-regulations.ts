@@ -14,7 +14,6 @@ import { join, resolve } from "path";
 import pdf from "pdf-parse";
 
 const REGULATIONS_DIR = resolve(process.cwd(), "data/regulations");
-const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || "text-embedding-004";
 const TARGET_CHUNK_CHARS = 1500;
 const CHUNK_OVERLAP_CHARS = 200;
 
@@ -35,6 +34,12 @@ function loadEnvLocal() {
     if (!process.env[key]) process.env[key] = value;
   }
 }
+
+// Must run before EMBEDDING_MODEL is read below, so a .env.local override applies.
+loadEnvLocal();
+const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || "text-embedding-004";
+// Matches the fixed width of the regulation_chunks.embedding vector column in Supabase.
+const EMBEDDING_DIMENSIONS = 768;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -65,24 +70,41 @@ function chunkText(text: string): string[] {
   return chunks;
 }
 
-async function embed(text: string, apiKey: string): Promise<number[]> {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-      body: JSON.stringify({
-        model: `models/${EMBEDDING_MODEL}`,
-        content: { parts: [{ text }] },
-      }),
-    }
-  );
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  if (!response.ok) {
-    throw new Error(`Embedding failed (${response.status}): ${await response.text()}`);
+async function embed(text: string, apiKey: string): Promise<number[]> {
+  const maxAttempts = 6;
+  let response: Response | undefined;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          model: `models/${EMBEDDING_MODEL}`,
+          content: { parts: [{ text }] },
+          outputDimensionality: EMBEDDING_DIMENSIONS,
+        }),
+      }
+    );
+
+    if (response.status !== 429 || attempt === maxAttempts) break;
+
+    const retryAfterHeader = Number(response.headers.get("retry-after"));
+    const waitMs = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+      ? retryAfterHeader * 1000
+      : 2 ** attempt * 1000;
+    process.stdout.write(`\n  rate limited, waiting ${Math.round(waitMs / 1000)}s... `);
+    await sleep(waitMs);
   }
 
-  const data = (await response.json()) as { embedding?: { values?: number[] } };
+  if (!response!.ok) {
+    throw new Error(`Embedding failed (${response!.status}): ${await response!.text()}`);
+  }
+
+  const data = (await response!.json()) as { embedding?: { values?: number[] } };
   const values = data.embedding?.values;
   if (!values?.length) throw new Error("Empty embedding returned");
 
@@ -90,8 +112,6 @@ async function embed(text: string, apiKey: string): Promise<number[]> {
 }
 
 async function main() {
-  loadEnvLocal();
-
   const supabase = createClient(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),

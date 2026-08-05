@@ -44,4 +44,5 @@ Record what you actually downloaded, since these documents are revised:
 
 | Filename | Source URL | Retrieved | Revision date |
 | --- | --- | --- | --- |
-| _(fill in)_ | | | |
+| `AR 670-1.pdf` | https://armypubs.army.mil/epubs/DR_pubs/DR_a/ARN30302-AR_670-1-001-WEB-3.pdf | 2026-08-05 | 01/26/2021 |
+| `AR 600-20.pdf` | https://armypubs.army.mil/epubs/DR_pubs/DR_a/ARN46266-AR_600-20-000-WEB-1.pdf | 2026-08-05 | 04/15/2026 |

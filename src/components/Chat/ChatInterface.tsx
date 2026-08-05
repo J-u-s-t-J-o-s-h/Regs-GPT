@@ -1,13 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useAssistant } from '@/hooks/useAssistant';
 import ChatMessage from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
 
-export default function ChatInterface() {
-  const { messages, isLoading, error, sendMessage } = useAssistant();
+interface ChatInterfaceProps {
+  conversationId: string | null;
+  onNewConversation: (id: string) => void;
+}
+
+export default function ChatInterface({
+  conversationId,
+  onNewConversation,
+}: ChatInterfaceProps) {
+  const { messages, isLoading, error, limitReached, sendMessage } =
+    useAssistant(conversationId, onNewConversation);
   const [input, setInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // A half-typed draft shouldn't follow the user into a different chat.
+  useEffect(() => {
+    setInput('');
+  }, [conversationId]);
 
   // Improved smooth scrolling with intersection observer
   useEffect(() => {
@@ -43,6 +58,14 @@ export default function ChatInterface() {
         {error && (
           <div className="bg-red-50 p-4 border-l-4 border-red-500">
             <p className="text-red-700">{error}</p>
+            {limitReached && (
+              <Link
+                href="/pricing"
+                className="mt-2 inline-block text-sm font-medium text-red-800 underline"
+              >
+                Upgrade to Premium
+              </Link>
+            )}
           </div>
         )}
 

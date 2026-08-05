@@ -2,6 +2,16 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { requireUser } from "@/lib/auth-api";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
+  FREE_DAILY_MESSAGE_LIMIT,
+  getTodayUsageCount,
+  incrementTodayUsage,
+} from "@/lib/chat-usage";
+import {
+  ensureConversation,
+  saveMessage,
+  touchConversation,
+} from "@/lib/chat-history";
+import {
   generateAnswer,
   retrieveContext,
   type ChatMessage,
@@ -56,13 +66,24 @@ export default async function handler(
       );
     }
 
-    if (subscription?.status !== "active") {
-      return res.status(403).json({ error: "Premium subscription required" });
+    const isPremium = subscription?.status === "active";
+    let usageCount = 0;
+
+    if (!isPremium) {
+      usageCount = await getTodayUsageCount(uid);
+
+      if (usageCount >= FREE_DAILY_MESSAGE_LIMIT) {
+        return res.status(403).json({
+          error: `You've used all ${FREE_DAILY_MESSAGE_LIMIT} free messages for today. Upgrade to Premium for unlimited access.`,
+          code: "free_limit_reached",
+        });
+      }
     }
 
-    const { message, history } = req.body as {
+    const { message, history, conversationId } = req.body as {
       message?: string;
       history?: unknown;
+      conversationId?: string;
     };
 
     if (!message?.trim()) {
@@ -70,6 +91,13 @@ export default async function handler(
     }
 
     const question = message.trim();
+    const resolvedConversationId = await ensureConversation(
+      uid,
+      conversationId,
+      question
+    );
+    await saveMessage(resolvedConversationId, "user", question);
+
     const chunks = await retrieveContext(question);
     const answer = await generateAnswer(
       question,
@@ -77,14 +105,24 @@ export default async function handler(
       chunks
     );
 
+    const citations = chunks.map((chunk) => ({
+      docId: chunk.doc_id,
+      title: chunk.title,
+      page: chunk.page,
+      sourceUrl: chunk.source_url,
+    }));
+
+    await saveMessage(resolvedConversationId, "assistant", answer, citations);
+    await touchConversation(resolvedConversationId);
+
+    if (!isPremium) {
+      await incrementTodayUsage(uid, usageCount);
+    }
+
     return res.status(200).json({
       reply: { role: "assistant", content: [answer] },
-      citations: chunks.map((chunk) => ({
-        docId: chunk.doc_id,
-        title: chunk.title,
-        page: chunk.page,
-        sourceUrl: chunk.source_url,
-      })),
+      citations,
+      conversationId: resolvedConversationId,
     });
   } catch (error) {
     const statusCode =

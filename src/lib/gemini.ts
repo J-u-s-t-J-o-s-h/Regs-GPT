@@ -5,7 +5,11 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 // below are stable across SDK releases.
 const API_ROOT = "https://generativelanguage.googleapis.com/v1beta";
 
-export const CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || "gemini-2.0-flash";
+// "-latest" is a rolling alias Google repoints at their current recommended
+// flash model, so this stays valid as older generations get sunset for new
+// API keys (gemini-2.0-flash and gemini-2.5-flash already are, as of this
+// writing).
+export const CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || "gemini-flash-latest";
 export const EMBEDDING_MODEL =
   process.env.GEMINI_EMBEDDING_MODEL || "text-embedding-004";
 
@@ -72,6 +76,7 @@ export async function embedText(text: string): Promise<number[]> {
     {
       model: `models/${EMBEDDING_MODEL}`,
       content: { parts: [{ text }] },
+      outputDimensionality: EMBEDDING_DIMENSIONS,
     }
   );
 

@@ -89,27 +89,27 @@ function DashboardPage() {
             </p>
           ) : (
             <p className="mt-3 text-gray-300">
-              No active subscription.{" "}
+              Free plan — 5 chat messages per day.{" "}
               <Link href="/pricing" className="text-blue-300 underline">
                 Upgrade to Premium
-              </Link>
+              </Link>{" "}
+              for unlimited access.
             </p>
           )}
           {error && <p className="mt-3 text-red-300 text-sm">{error}</p>}
         </div>
 
         <div className="mt-6 flex gap-3">
-          {subscription?.isActive ? (
-            <Link
-              href="/chat"
-              className="inline-flex px-5 py-2.5 rounded-lg bg-primary text-white hover:bg-primary-light no-underline"
-            >
-              Start chatting
-            </Link>
-          ) : (
+          <Link
+            href="/chat"
+            className="inline-flex px-5 py-2.5 rounded-lg bg-primary text-white hover:bg-primary-light no-underline"
+          >
+            Start chatting
+          </Link>
+          {!subscription?.isActive && (
             <Link
               href="/pricing"
-              className="inline-flex px-5 py-2.5 rounded-lg bg-primary text-white hover:bg-primary-light no-underline"
+              className="inline-flex px-5 py-2.5 rounded-lg border border-[#3A4D25] text-white hover:bg-[#26331B] no-underline"
             >
               View pricing
             </Link>

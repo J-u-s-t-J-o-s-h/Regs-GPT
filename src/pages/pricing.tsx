@@ -71,8 +71,8 @@ export default function PricingPage() {
               Simple, Transparent Pricing
             </h2>
             <p className="mt-4 text-xl text-gray-300">
-              Free to sign in. Subscribe to use AI chat grounded in Army
-              regulations.
+              Free accounts get 5 AI chat messages a day. Subscribe for
+              unlimited access.
             </p>
           </div>
 
