@@ -125,6 +125,12 @@ function formatContext(chunks: RegulationChunk[]): string {
   return `CONTEXT:\n${blocks.join("\n\n")}`;
 }
 
+export interface GeneratedAnswer {
+  text: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
 /**
  * Answers a question using retrieved regulation excerpts.
  * `history` is prior turns, oldest first, and is sent for conversational
@@ -134,7 +140,7 @@ export async function generateAnswer(
   question: string,
   history: ChatMessage[],
   chunks: RegulationChunk[]
-): Promise<string> {
+): Promise<GeneratedAnswer> {
   const contents = [
     ...history.map((message) => ({
       role: message.role === "assistant" ? "model" : "user",
@@ -148,6 +154,7 @@ export async function generateAnswer(
 
   const data = await callGemini<{
     candidates?: { content?: { parts?: { text?: string }[] } }[];
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
   }>(`models/${CHAT_MODEL}:generateContent`, {
     contents,
     systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
@@ -166,5 +173,9 @@ export async function generateAnswer(
     throw new Error("Gemini returned an empty response");
   }
 
-  return text;
+  return {
+    text,
+    inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+  };
 }
