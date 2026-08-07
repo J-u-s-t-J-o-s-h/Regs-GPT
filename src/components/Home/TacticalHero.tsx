@@ -4,10 +4,10 @@ import { useEffect, useRef } from "react";
 // the app instead of drifting out of sync with it.
 const GRID_COLOR = "90, 109, 69"; // primary-light
 const SWEEP_COLOR = "232, 184, 92"; // one warm accent, spent only here
-const GRID_SPACING = 40;
-const RING_INTERVAL_MS = 2200;
-const RING_LIFETIME_MS = 2400;
-const RING_SPEED_PX_PER_MS = 0.17;
+const GRID_SPACING = 44;
+const RING_INTERVAL_MS = 3200;
+const RING_LIFETIME_MS = 2200;
+const RING_SPEED_PX_PER_MS = 0.15;
 
 interface Ring {
   bornAt: number;
@@ -90,10 +90,10 @@ export default function TacticalHero() {
             const age = now - ring.bornAt;
             const radius = age * RING_SPEED_PX_PER_MS;
             const delta = Math.abs(dist - radius);
-            if (delta < 75) {
-              const proximity = 1 - delta / 75;
+            if (delta < 55) {
+              const proximity = 1 - delta / 55;
               const fade = 1 - age / RING_LIFETIME_MS;
-              brightness = Math.max(brightness, proximity * fade);
+              brightness = Math.max(brightness, proximity * fade * 0.75);
             }
           }
 
@@ -101,17 +101,17 @@ export default function TacticalHero() {
             const pdx = x - pointerX;
             const pdy = y - pointerY;
             const pDist = Math.sqrt(pdx * pdx + pdy * pdy);
-            if (pDist < 180) {
-              brightness = Math.max(brightness, (1 - pDist / 180) * 0.65);
+            if (pDist < 150) {
+              brightness = Math.max(brightness, (1 - pDist / 150) * 0.45);
             }
           }
 
-          const isSweepLit = brightness > 0.1;
+          const isSweepLit = brightness > 0.12;
           ctx.fillStyle = isSweepLit
-            ? `rgba(${SWEEP_COLOR}, ${Math.min(brightness, 1)})`
-            : `rgba(${GRID_COLOR}, 0.24)`;
+            ? `rgba(${SWEEP_COLOR}, ${Math.min(brightness, 0.8)})`
+            : `rgba(${GRID_COLOR}, 0.14)`;
           ctx.beginPath();
-          ctx.arc(x, y, isSweepLit ? 2.2 : 1.4, 0, Math.PI * 2);
+          ctx.arc(x, y, isSweepLit ? 1.6 : 1.1, 0, Math.PI * 2);
           ctx.fill();
         }
       }

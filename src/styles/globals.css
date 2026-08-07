@@ -41,31 +41,17 @@ a {
 @keyframes pulse-glow {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.3;
     transform: translate(-50%, -50%) scale(1);
   }
   50% {
-    opacity: 0.85;
-    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 0.45;
+    transform: translate(-50%, -50%) scale(1.03);
   }
 }
 
 .animate-pulse-glow {
-  animation: pulse-glow 6s ease-in-out infinite;
-}
-
-@keyframes card-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.animate-card-float {
-  animation: card-float 5s ease-in-out infinite;
+  animation: pulse-glow 8s ease-in-out infinite;
 }
 
 /* Diagonal shine sweep on hover, used by the primary CTA. */
@@ -98,8 +84,7 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in-up,
   .animate-headline-reveal,
-  .animate-pulse-glow,
-  .animate-card-float {
+  .animate-pulse-glow {
     animation: none !important;
   }
 
