@@ -28,10 +28,10 @@ function ChatPage() {
       </Head>
       <div className="min-h-[calc(100vh-2rem)]">
         <main className="container mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold mb-6 text-white">
+          <h1 className="text-xl font-bold mb-4 text-white md:text-2xl md:mb-6">
             Army Regulations Assistant
           </h1>
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-4 md:flex-row">
             <ConversationList
               activeId={conversationId}
               onSelect={selectConversation}

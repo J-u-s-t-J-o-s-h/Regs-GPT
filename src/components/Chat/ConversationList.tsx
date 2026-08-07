@@ -49,7 +49,7 @@ export default function ConversationList({
   }, [user, refreshToken]);
 
   return (
-    <aside className="w-64 shrink-0 bg-[#26331B] border border-[#3A4D25] rounded-lg p-3 h-[calc(100vh-8rem)] overflow-y-auto">
+    <aside className="w-full max-h-48 shrink-0 overflow-y-auto rounded-lg border border-[#3A4D25] bg-[#26331B] p-3 md:h-[calc(100vh-8rem)] md:w-64 md:max-h-none">
       <button
         onClick={() => onSelect(null)}
         className={`w-full text-left p-2 rounded-lg mb-2 text-white transition-colors ${

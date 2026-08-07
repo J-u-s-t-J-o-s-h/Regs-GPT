@@ -25,18 +25,53 @@ a {
   animation: fade-in-up 0.7s ease-out both;
 }
 
-@keyframes pulse-glow {
-  0%,
-  100% {
-    opacity: 0.25;
-    transform: translate(-50%, -50%) scale(1);
+@keyframes headline-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
   }
-  50% {
-    opacity: 0.5;
-    transform: translate(-50%, -50%) scale(1.08);
+  to {
+    clip-path: inset(0 0 0 0);
   }
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 5s ease-in-out infinite;
+.animate-headline-reveal {
+  animation: headline-reveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Diagonal shine sweep on hover, used by the primary CTA. */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    115deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+}
+
+.btn-shine:hover::after {
+  left: 130%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-headline-reveal {
+    animation: none !important;
+  }
+
+  .btn-shine::after {
+    transition: none;
+  }
 }
