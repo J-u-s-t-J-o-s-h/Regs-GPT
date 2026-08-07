@@ -1,4 +1,5 @@
 import Head from "next/head";
+import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SUBSCRIPTION_TIERS } from "@/lib/stripe";
@@ -7,12 +8,13 @@ import { useState } from "react";
 export default function PricingPage() {
   const { user, getAccessToken } = useAuth();
   const { subscription } = useSubscription();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubscribe = async () => {
     if (!user) {
-      setError("Please sign in to subscribe");
+      router.push("/signin");
       return;
     }
 

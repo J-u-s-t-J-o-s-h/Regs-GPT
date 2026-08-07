@@ -90,7 +90,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           ) : (
             <Link
-              href="/"
+              href="/signin"
               onClick={onClose}
               className="block text-center p-2 bg-[#3A4D25] rounded-lg hover:bg-[#4A5D35] transition-colors no-underline text-white"
             >
