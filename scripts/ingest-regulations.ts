@@ -16,6 +16,9 @@ import pdf from "pdf-parse";
 const REGULATIONS_DIR = resolve(process.cwd(), "data/regulations");
 const TARGET_CHUNK_CHARS = 1500;
 const CHUNK_OVERLAP_CHARS = 200;
+// Hard ceiling for a single chunk. Packing prepends up to CHUNK_OVERLAP_CHARS
+// of the previous chunk, so a chunk can legitimately reach target + overlap.
+const MAX_CHUNK_CHARS = TARGET_CHUNK_CHARS + CHUNK_OVERLAP_CHARS;
 
 /** Minimal .env.local loader so the script needs no dotenv dependency. */
 function loadEnvLocal() {
@@ -47,12 +50,57 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/**
+ * Breaks an over-length paragraph into pieces that fit TARGET_CHUNK_CHARS,
+ * preferring sentence boundaries.
+ *
+ * Regulations routinely contain single paragraphs several thousand characters
+ * long (tables, enumerated sub-paragraphs flattened by PDF extraction). Packing
+ * alone never splits those, so without this they became one oversized chunk —
+ * which dilutes the embedding and wastes prompt budget at query time.
+ */
+function splitLongParagraph(paragraph: string): string[] {
+  if (paragraph.length <= TARGET_CHUNK_CHARS) return [paragraph];
+
+  // Keep terminal punctuation attached to the sentence it ends.
+  const sentences = paragraph.match(/[^.!?]+[.!?]+\s*|[^.!?]+$/g) ?? [paragraph];
+
+  const pieces: string[] = [];
+  let current = "";
+
+  for (const sentence of sentences) {
+    // A single "sentence" can still exceed the target when extraction produces
+    // long unpunctuated runs, so fall back to a hard character split.
+    if (sentence.length > TARGET_CHUNK_CHARS) {
+      if (current.trim()) {
+        pieces.push(current.trim());
+        current = "";
+      }
+      for (let i = 0; i < sentence.length; i += TARGET_CHUNK_CHARS) {
+        pieces.push(sentence.slice(i, i + TARGET_CHUNK_CHARS).trim());
+      }
+      continue;
+    }
+
+    if (current && current.length + sentence.length > TARGET_CHUNK_CHARS) {
+      pieces.push(current.trim());
+      current = sentence;
+    } else {
+      current += sentence;
+    }
+  }
+
+  if (current.trim()) pieces.push(current.trim());
+  return pieces.filter(Boolean);
+}
+
 /** Splits on paragraph boundaries, packing up to TARGET_CHUNK_CHARS with overlap. */
 function chunkText(text: string): string[] {
   const paragraphs = text
     .split(/\n\s*\n/)
     .map((p) => p.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .flatMap(splitLongParagraph);
 
   const chunks: string[] = [];
   let current = "";
@@ -140,7 +188,16 @@ async function main() {
 
     const parsed = await pdf(readFileSync(join(REGULATIONS_DIR, file)));
     const chunks = chunkText(parsed.text);
-    console.log(`${chunks.length} chunks`);
+
+    const largest = chunks.reduce((max, chunk) => Math.max(max, chunk.length), 0);
+    console.log(`${chunks.length} chunks (largest ${largest} chars)`);
+
+    const oversized = chunks.filter((chunk) => chunk.length > MAX_CHUNK_CHARS);
+    if (oversized.length > 0) {
+      console.warn(
+        `  warning: ${oversized.length} chunk(s) exceed ${MAX_CHUNK_CHARS} chars`
+      );
+    }
 
     // Replace any previous run for this document.
     const { error: deleteError } = await supabase
